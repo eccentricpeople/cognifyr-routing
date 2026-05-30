@@ -8,7 +8,7 @@ import { z } from 'zod'
 const createRequestSchema = z.object({
   message: z.string().min(1).max(5000),
   customerName: z.string().optional(),
-  customerEmail: z.string().email().optional(),
+  customerEmail: z.string().email().optional().or(z.literal('')),
   sourceChannel: z.string().default('api')
 })
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import socket from '../lib/socket'
 
@@ -37,17 +37,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
   const [filters, setFilters] = useState({ status: '', priority: '', category: '' })
-  const navigate = useNavigate()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ message: '', customerName: '', customerEmail: '', sourceChannel: 'website' })
   const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
+  const filtersRef = useRef(filters)
+
+  useEffect(() => {
+    filtersRef.current = filters
+  }, [filters])
 
   const fetchRequests = async () => {
     try {
       const params: any = {}
-      if (filters.status) params.status = filters.status
-      if (filters.priority) params.priority = filters.priority
-      if (filters.category) params.category = filters.category
+      const f = filtersRef.current
+      if (f.status) params.status = f.status
+      if (f.priority) params.priority = f.priority
+      if (f.category) params.category = f.category
       const res = await api.get('/requests', { params })
       setRequests(res.data.requests)
       setTotal(res.data.total)
@@ -66,11 +72,13 @@ export default function Dashboard() {
   useEffect(() => {
     socket.on('connect', () => setConnected(true))
     socket.on('disconnect', () => setConnected(false))
-    socket.on('request:created', () => fetchRequests())
-    socket.on('request:updated', () => fetchRequests())
+    socket.on('request:created', fetchRequests)
+    socket.on('request:updated', fetchRequests)
     return () => {
-      socket.off('request:created')
-      socket.off('request:updated')
+      socket.off('connect')
+      socket.off('disconnect')
+      socket.off('request:created', fetchRequests)
+      socket.off('request:updated', fetchRequests)
     }
   }, [])
 
@@ -78,7 +86,8 @@ export default function Dashboard() {
     localStorage.removeItem('token')
     navigate('/')
   }
-const submitRequest = async () => {
+
+  const submitRequest = async () => {
     if (!form.message.trim()) return
     setSubmitting(true)
     try {
@@ -91,6 +100,7 @@ const submitRequest = async () => {
       setSubmitting(false)
     }
   }
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
@@ -192,48 +202,49 @@ const submitRequest = async () => {
           </div>
         )}
       </div>
+
       {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div className="bg-gray-900 rounded-xl p-6 w-full max-w-lg border border-gray-800">
-              <h2 className="text-lg font-semibold mb-4">New Customer Request</h2>
-              <div className="mb-3">
-                <label className="text-gray-400 text-sm mb-1 block">Message *</label>
-                <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                  className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:border-teal-500 text-sm h-24"
-                  placeholder="Customer message..." />
-              </div>
-              <div className="mb-3">
-                <label className="text-gray-400 text-sm mb-1 block">Customer Name</label>
-                <input value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))}
-                  className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:border-teal-500 text-sm"
-                  placeholder="John Doe" />
-              </div>
-              <div className="mb-3">
-                <label className="text-gray-400 text-sm mb-1 block">Customer Email</label>
-                <input value={form.customerEmail} onChange={e => setForm(f => ({ ...f, customerEmail: e.target.value }))}
-                  className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:border-teal-500 text-sm"
-                  placeholder="john@example.com" />
-              </div>
-              <div className="mb-6">
-                <label className="text-gray-400 text-sm mb-1 block">Source Channel</label>
-                <select value={form.sourceChannel} onChange={e => setForm(f => ({ ...f, sourceChannel: e.target.value }))}
-                  className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 text-sm">
-                  <option value="website">Website</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="email">Email</option>
-                  <option value="api">API</option>
-                </select>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowForm(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg text-sm">Cancel</button>
-                <button onClick={submitRequest} disabled={submitting}
-                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-2 rounded-lg text-sm disabled:opacity-50">
-                  {submitting ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-lg border border-gray-800">
+            <h2 className="text-lg font-semibold mb-4">New Customer Request</h2>
+            <div className="mb-3">
+              <label className="text-gray-400 text-sm mb-1 block">Message *</label>
+              <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:border-teal-500 text-sm h-24"
+                placeholder="Customer message..." />
+            </div>
+            <div className="mb-3">
+              <label className="text-gray-400 text-sm mb-1 block">Customer Name</label>
+              <input value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))}
+                className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:border-teal-500 text-sm"
+                placeholder="John Doe" />
+            </div>
+            <div className="mb-3">
+              <label className="text-gray-400 text-sm mb-1 block">Customer Email</label>
+              <input value={form.customerEmail} onChange={e => setForm(f => ({ ...f, customerEmail: e.target.value }))}
+                className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 focus:outline-none focus:border-teal-500 text-sm"
+                placeholder="john@example.com" />
+            </div>
+            <div className="mb-6">
+              <label className="text-gray-400 text-sm mb-1 block">Source Channel</label>
+              <select value={form.sourceChannel} onChange={e => setForm(f => ({ ...f, sourceChannel: e.target.value }))}
+                className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 text-sm">
+                <option value="website">Website</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">Email</option>
+                <option value="api">API</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowForm(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={submitRequest} disabled={submitting}
+                className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-2 rounded-lg text-sm disabled:opacity-50">
+                {submitting ? 'Submitting...' : 'Submit Request'}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   )
 }
