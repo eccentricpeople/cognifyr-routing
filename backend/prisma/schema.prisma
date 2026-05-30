@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum RequestStatus {
+  NEW
+  QUEUED
+  CLASSIFYING
+  CLASSIFIED
+  IN_PROGRESS
+  RESOLVED
+  FAILED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Category {
+  SALES
+  SUPPORT
+  URGENT
+  SPAM
+  OTHER
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(AGENT)
+  createdAt    DateTime      @default(now())
+
+  notes        InternalNote[]
+  events       RequestEvent[]
+}
+
+model CustomerRequest {
+  id               String        @id @default(uuid())
+  message          String
+  sourceChannel    String        @default("api")
+  customerName     String?
+  customerEmail    String?
+  status           RequestStatus @default(NEW)
+  categorySnapshot Category?
+  prioritySnapshot Priority?
+  idempotencyKey   String?       @unique
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  classification   AiClassification?
+  notes            InternalNote[]
+  events           RequestEvent[]
+
+  @@index([status])
+  @@index([categorySnapshot])
+  @@index([prioritySnapshot])
+  @@index([createdAt])
+}
+
+model AiClassification {
+  id         String    @id @default(uuid())
+  requestId  String    @unique
+  provider   String    @default("mock")
+  category   Category?
+  priority   Priority?
+  summary    String?
+  confidence Float?
+  reason     String?
+  rawOutput  Json?
+  error      String?
+  createdAt  DateTime  @default(now())
+
+  request    CustomerRequest @relation(fields: [requestId], references: [id])
+}
+
+model RequestEvent {
+  id         String   @id @default(uuid())
+  requestId  String
+  eventType  String
+  oldValue   String?
+  newValue   String?
+  actorId    String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  request    CustomerRequest @relation(fields: [requestId], references: [id])
+  actor      User?           @relation(fields: [actorId], references: [id])
+
+  @@index([requestId])
+  @@index([createdAt])
+}
+
+model InternalNote {
+  id        String   @id @default(uuid())
+  requestId String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  request   CustomerRequest @relation(fields: [requestId], references: [id])
+  author    User            @relation(fields: [authorId], references: [id])
+
+  @@index([requestId])
+}
