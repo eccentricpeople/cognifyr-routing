@@ -16,7 +16,7 @@ export async function classify(message: string): Promise<ClassificationResult> {
   let category: ClassificationResult['category'] = 'other'
   if (lower.includes('buy') || lower.includes('price') || lower.includes('plan') || lower.includes('upgrade')) {
     category = 'sales'
-  } else if (lower.includes('help') || lower.includes('issue') || lower.includes('problem') || lower.includes('broken')) {
+  } else if (lower.includes('help') || lower.includes('issue') || lower.includes('problem') || lower.includes('broken') || lower.includes('cannot access') || lower.includes('payment') || lower.includes('login')) {
     category = 'support'
   } else if (lower.includes('urgent') || lower.includes('asap') || lower.includes('emergency') || lower.includes('critical')) {
     category = 'urgent'
