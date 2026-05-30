@@ -5,6 +5,7 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import { PrismaClient } from './generated/prisma'
 import authRouter from './routes/auth'
+import requestsRouter from './routes/requests'
 
 export const prisma = new PrismaClient()
 export const app = express()
@@ -17,6 +18,7 @@ export const io = new Server(httpServer, {
 app.use(cors())
 app.use(express.json())
 app.use('/auth', authRouter)
+app.use('/requests', requestsRouter)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' })
 })
