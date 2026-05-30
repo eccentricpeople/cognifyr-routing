@@ -7,6 +7,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 enum Role {
   ADMIN
   AGENT
@@ -37,14 +38,14 @@ enum Category {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String   @id @default(uuid())
+  email        String   @unique
   passwordHash String
-  role         Role          @default(AGENT)
-  createdAt    DateTime      @default(now())
+  role         Role     @default(AGENT)
+  createdAt    DateTime @default(now())
 
-  notes        InternalNote[]
-  events       RequestEvent[]
+  notes  InternalNote[]
+  events RequestEvent[]
 }
 
 model CustomerRequest {
@@ -60,9 +61,9 @@ model CustomerRequest {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  classification   AiClassification?
-  notes            InternalNote[]
-  events           RequestEvent[]
+  classification AiClassification?
+  notes          InternalNote[]
+  events         RequestEvent[]
 
   @@index([status])
   @@index([categorySnapshot])
@@ -83,21 +84,21 @@ model AiClassification {
   error      String?
   createdAt  DateTime  @default(now())
 
-  request    CustomerRequest @relation(fields: [requestId], references: [id])
+  request CustomerRequest @relation(fields: [requestId], references: [id])
 }
 
 model RequestEvent {
-  id         String   @id @default(uuid())
-  requestId  String
-  eventType  String
-  oldValue   String?
-  newValue   String?
-  actorId    String?
-  metadata   Json?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  requestId String
+  eventType String
+  oldValue  String?
+  newValue  String?
+  actorId   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
 
-  request    CustomerRequest @relation(fields: [requestId], references: [id])
-  actor      User?           @relation(fields: [actorId], references: [id])
+  request CustomerRequest @relation(fields: [requestId], references: [id])
+  actor   User?           @relation(fields: [actorId], references: [id])
 
   @@index([requestId])
   @@index([createdAt])
@@ -110,8 +111,8 @@ model InternalNote {
   body      String
   createdAt DateTime @default(now())
 
-  request   CustomerRequest @relation(fields: [requestId], references: [id])
-  author    User            @relation(fields: [authorId], references: [id])
+  request CustomerRequest @relation(fields: [requestId], references: [id])
+  author  User            @relation(fields: [authorId], references: [id])
 
   @@index([requestId])
 }
